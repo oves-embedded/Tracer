@@ -20,11 +20,11 @@
         app:leftTitle="扫一扫"
         app:leftTitleColor="#666666"
         app:leftTitleSize="12sp"
-        app:rightIcon="@drawable/ic_playlist_add_check_24"
+        app:rightIcon="@drawable/ic_filter_24"
         app:rightIconGravity="top"
         app:rightIconHeight="20dp"
         app:rightIconWidth="20dp"
-        app:rightTitle="记录"
+        app:rightTitle="过滤"
         app:rightTitleColor="#666666"
         app:rightTitleSize="12sp"
         app:title="质检APP" />
@@ -45,11 +45,10 @@
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recyclerView"
-            android:background="#F3F1F0"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:padding="2dp"
-            />
+            android:background="#F3F1F0"
+            android:padding="2dp" />
 
         <!--        <com.scwang.smart.refresh.footer.ClassicsFooter-->
         <!--            android:layout_width="match_parent"-->

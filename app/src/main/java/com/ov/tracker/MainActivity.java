@@ -28,6 +28,9 @@ import com.ov.tracker.service.BleService;
 import com.ov.tracker.utils.LogUtil;
 import com.ov.tracker.utils.permission.PermissionInterceptor;
 import com.ov.tracker.utils.permission.PermissionNameConvert;
+import com.scwang.smart.refresh.layout.SmartRefreshLayout;
+import com.scwang.smart.refresh.layout.api.RefreshLayout;
+import com.scwang.smart.refresh.layout.listener.OnRefreshListener;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -35,11 +38,20 @@ import org.greenrobot.eventbus.ThreadMode;
 
 import java.util.List;
 
+import butterknife.BindView;
 import butterknife.ButterKnife;
 
 public class MainActivity extends AppCompatActivity {
 
     private BleService bleService;
+
+    private BleAdapter bleAdapter;
+    @BindView(R.id.refreshLayout)
+    SmartRefreshLayout refreshLayout;
+    @BindView(R.id.recyclerView)
+    RecyclerView recyclerView;
+
+    private List<BleDeviceInfo>list;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,9 +59,22 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
         initService();
+        initView();
+        bleAdapter = new BleAdapter(R.layout.item_ble_detail);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        recyclerView.setAdapter(bleAdapter);
     }
 
     public void initView(){
+        refreshLayout.setEnableLoadMore(false);
+        refreshLayout.setOnRefreshListener(new OnRefreshListener() {
+            @Override
+            public void onRefresh(@NonNull RefreshLayout refreshLayout) {
+                if(bleService!=null){
+                    startScan();
+                }
+            }
+        });
     }
 
     private void startScan() {
@@ -57,6 +82,8 @@ public class MainActivity extends AppCompatActivity {
                 .permission(Permission.BLUETOOTH_SCAN)
                 .permission(Permission.BLUETOOTH_CONNECT)
                 .permission(Permission.BLUETOOTH_ADVERTISE)
+                .permission(Permission.ACCESS_FINE_LOCATION)
+                .permission(Permission.ACCESS_COARSE_LOCATION)
                 .interceptor(new PermissionInterceptor()).request(new OnPermissionCallback() {
                     @Override
                     public void onGranted(@NonNull List<String> permissions, boolean allGranted) {
@@ -64,6 +91,7 @@ public class MainActivity extends AppCompatActivity {
                             return;
                         }
                         if(bleService!=null){
+                            bleService.stopScan();
                             bleService.startBleScan();
                         }
                         Toaster.show(String.format(getString(R.string.demo_obtain_permission_success_hint), PermissionNameConvert.getPermissionString(MainActivity.this, permissions)));
@@ -92,7 +120,12 @@ public class MainActivity extends AppCompatActivity {
     public void subscriber(EventBusMsg msg){
         LogUtil.error(JSON.toJSONString(msg));
         if(msg.getTagEnum()== EventBusTagEnum.BLE_FIND){
-            List<BleDeviceInfo> list= (List<BleDeviceInfo>) msg.getT();
+            List<BleDeviceInfo> deviceInfos= (List<BleDeviceInfo>) msg.getT();
+            list=deviceInfos;
+            bleAdapter.setNewInstance(list);
+            if(refreshLayout.isRefreshing()){
+                refreshLayout.finishRefresh();
+            }
         }
     }
 

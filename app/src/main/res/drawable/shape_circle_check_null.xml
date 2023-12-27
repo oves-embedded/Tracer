@@ -47,8 +47,8 @@
     <!--gradientRadius 和android:type="radial"一起连用, 半径-->
     <gradient
         android:angle="0"
-        android:centerColor="#F0F3F6"
-        android:endColor="#E5EDF8"
+        android:centerColor="#ffffff"
+        android:endColor="#F0F3F6"
         android:startColor="#ffffff" />
 
 </shape>
