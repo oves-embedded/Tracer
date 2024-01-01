@@ -89,9 +89,6 @@ public class BleService extends Service {
         return null;
     }
 
-
-
-
     @SuppressLint("MissingPermission")
     public void startBleScan() {
         bleDeviceMap.clear();
@@ -138,6 +135,8 @@ public class BleService extends Service {
                     checkRecord.setProductName(nameArr[1]);
                     checkRecord.setProductId("");
                 }
+
+                checkRecord.setRssi(result.getRssi());
                 bleDeviceMap.put(device.getAddress(), device);
                 if (bleDeviceInfoMap.containsKey(device.getAddress())) {
 //                    LogUtil.info("==========find device/update device info" + JSON.toJSONString(checkRecord) + "==========");

@@ -52,6 +52,7 @@ public class BleDeviceUtil {
     private static final long TIME_OUT = 3000;
     private CountDownLatch countDownLatch;
     private Map<String, ServicesPropertiesDomain> serviceDataDtoMap = null;
+    private int maxCharacteristicCount=0;
 
     private StringBuffer notifyBuff = new StringBuffer();
 
@@ -423,6 +424,7 @@ public class BleDeviceUtil {
                         List<BluetoothGattCharacteristic> characteristics = bluetoothGattService.getCharacteristics();
                         if (characteristics != null && characteristics.size() > 0) {
                             for (int j = 0; j < characteristics.size(); j++) {
+                                maxCharacteristicCount++;
                                 BluetoothGattCharacteristic bluetoothGattCharacteristic = characteristics.get(j);
                                 Map<String, CharacteristicDomain> characteristicDataMap = bleServiceDataDto.getCharacterMap();
                                 if (characteristicDataMap == null) {
@@ -647,6 +649,10 @@ public class BleDeviceUtil {
 
     public Map<String, ServicesPropertiesDomain> getServiceDataDtoMap() {
         return serviceDataDtoMap;
+    }
+
+    public int getMaxCharacteristicCount() {
+        return maxCharacteristicCount;
     }
 
     public StringBuffer getNotifyBuff() {
