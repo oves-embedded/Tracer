@@ -11,11 +11,9 @@ import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattServer;
 import android.bluetooth.BluetoothGattService;
 import android.content.Context;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import com.ov.tracker.constants.DataConvert;
 import com.ov.tracker.constants.ReturnResult;
 import com.ov.tracker.entity.CharacteristicDomain;
 import com.ov.tracker.entity.DescriptorDomain;
@@ -24,7 +22,6 @@ import com.ov.tracker.enums.ServiceNameEnum;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -420,7 +417,8 @@ public class BleDeviceUtil {
                             bleServiceDataDto.setUuid(bluetoothGattService.getUuid().toString());
                             serviceDataDtoMap.put(bluetoothGattService.getUuid().toString(), bleServiceDataDto);
                         }
-                        bleServiceDataDto.setServiceName(bluetoothGattService.getType() == SERVICE_TYPE_PRIMARY ? "PRIMARY SERVICE" : "SECONDARY SERVICE");
+                        bleServiceDataDto.setServiceNameEnum(ServiceNameEnum.getServiceNameFromUUID(bleServiceDataDto.getUuid()));
+                        bleServiceDataDto.setServiceProperty(bluetoothGattService.getType() == SERVICE_TYPE_PRIMARY ? "PRIMARY SERVICE" : "SECONDARY SERVICE");
                         List<BluetoothGattCharacteristic> characteristics = bluetoothGattService.getCharacteristics();
                         if (characteristics != null && characteristics.size() > 0) {
                             for (int j = 0; j < characteristics.size(); j++) {

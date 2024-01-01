@@ -13,9 +13,9 @@ import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.alibaba.fastjson.JSON;
 import com.chad.library.adapter.base.BaseQuickAdapter;
 import com.chad.library.adapter.base.viewholder.BaseViewHolder;
+import com.google.gson.Gson;
 import com.ov.tracker.MainActivity;
 import com.ov.tracker.R;
 
@@ -119,7 +119,7 @@ public class HomeFragment extends Fragment implements EventCallBack {
                 @Override
                 public void onClick(View v) {
                     Intent intent=new Intent(activity2, BleDetailActivity.class);
-                    intent.putExtra("data",JSON.toJSONString(info));
+                    intent.putExtra("data",new Gson().toJson(info));
                     startActivity(intent);
                 }
             });

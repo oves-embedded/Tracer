@@ -1,5 +1,6 @@
 package com.ov.tracker.ui;
 
+import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -33,9 +34,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatButton;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.alibaba.fastjson2.JSON;
 import com.chad.library.adapter.base.BaseQuickAdapter;
 import com.chad.library.adapter.base.viewholder.BaseViewHolder;
+import com.google.gson.Gson;
 import com.hjq.bar.OnTitleBarListener;
 import com.hjq.bar.TitleBar;
 import com.hjq.permissions.OnPermissionCallback;
@@ -49,23 +50,31 @@ import com.ov.tracker.entity.BleDeviceInfo;
 import com.ov.tracker.entity.CharacteristicDomain;
 import com.ov.tracker.entity.DescriptorDomain;
 import com.ov.tracker.entity.EventBusMsg;
+import com.ov.tracker.entity.MqttRevMessage;
 import com.ov.tracker.entity.ServicesPropertiesDomain;
+import com.ov.tracker.enums.EventBusTagEnum;
 import com.ov.tracker.enums.ServiceNameEnum;
 import com.ov.tracker.service.BleService;
 import com.ov.tracker.utils.BleDeviceUtil;
 import com.ov.tracker.utils.LogUtil;
+import com.ov.tracker.utils.MqttClientManager;
 import com.ov.tracker.utils.permission.PermissionInterceptor;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
+import org.json.JSONObject;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -96,14 +105,17 @@ public class BleDetailActivity extends AppCompatActivity implements View.OnClick
     private ServiceNameEnum serviceNameEnum = ServiceNameEnum.ATT_SERVICE_NAME;
     private String serviceUUID;
 
+    private String deviceId;
     private BleAttrAdapter bleAttrAdapter;
+
+    private String subTopicName, pulishTopicName;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_ble_detail);
         ButterKnife.bind(this);
-        info = JSON.parseObject(getIntent().getStringExtra("data"), BleDeviceInfo.class);
+        info = new Gson().fromJson(getIntent().getStringExtra("data"), BleDeviceInfo.class);
         initService();
 
         tv_att.setOnClickListener(this);
@@ -193,6 +205,7 @@ public class BleDetailActivity extends AppCompatActivity implements View.OnClick
     }
 
     private Handler mHandler = new Handler() {
+        @SuppressLint("HandlerLeak")
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
@@ -223,8 +236,8 @@ public class BleDetailActivity extends AppCompatActivity implements View.OnClick
                         ReturnResult<CharacteristicDomain> result = (ReturnResult<CharacteristicDomain>) msg.obj;
                         if (result.ok()) {
                             tv_content.setText(result.getData().getName() + ":" + result.getData().getDesc());
-                        }else{
-                            tv_content.setText("error:"+result.getExceptionMsg());
+                        } else {
+                            tv_content.setText("error:" + result.getExceptionMsg());
                         }
 
                     }
@@ -246,18 +259,18 @@ public class BleDetailActivity extends AppCompatActivity implements View.OnClick
                 for (ServicesPropertiesDomain domain : values) {
                     if (domain.getUuid().startsWith(serviceNameEnum.getPrefixCode())) {
                         ArrayList<CharacteristicDomain> characteristicDomains = new ArrayList<>(domain.getCharacterMap().values());
-                            Collections.sort(characteristicDomains, new Comparator<CharacteristicDomain>() {
-                                @Override
-                                public int compare(CharacteristicDomain o1, CharacteristicDomain o2) {
-                                    if(o1!=null&&o1.getName()!=null&&o2!=null&&o2.getName()!=null){
-                                        return o1.getName().compareTo(o2.getName());
-                                    }
-                                    return 0;
+                        Collections.sort(characteristicDomains, new Comparator<CharacteristicDomain>() {
+                            @Override
+                            public int compare(CharacteristicDomain o1, CharacteristicDomain o2) {
+                                if (o1 != null && o1.getName() != null && o2 != null && o2.getName() != null) {
+                                    return o1.getName().compareTo(o2.getName());
                                 }
-                            });
+                                return 0;
+                            }
+                        });
 
                         bleAttrAdapter.setNewInstance(characteristicDomains);
-                        serviceUUID=domain.getUuid();
+                        serviceUUID = domain.getUuid();
                         return;
                     }
                 }
@@ -284,10 +297,16 @@ public class BleDetailActivity extends AppCompatActivity implements View.OnClick
                         Map<String, ServicesPropertiesDomain> serviceDataDtoMap = bleDeviceUtil.getServiceDataDtoMap();
                         bleDeviceUtil.setMtu(64);
                         Collection<ServicesPropertiesDomain> values = serviceDataDtoMap.values();
+                        Map<String, Map<String, Object>> uploadMap = new HashMap<>();
+
                         for (ServicesPropertiesDomain servicesPropertiesDomain : values) {
                             Map<String, CharacteristicDomain> characterMap = servicesPropertiesDomain.getCharacterMap();
                             Collection<CharacteristicDomain> chValues = characterMap.values();
                             String serviceUUID = servicesPropertiesDomain.getUuid();
+
+                            HashMap<String, Object> objectObjectHashMap = new HashMap<>();
+                            uploadMap.put(servicesPropertiesDomain.getServiceNameEnum().getServiceName(),objectObjectHashMap);
+
                             for (CharacteristicDomain characteristicDomain : chValues) {
                                 String chUUID = characteristicDomain.getUuid();
                                 Map<String, DescriptorDomain> descMap = characteristicDomain.getDescMap();
@@ -296,14 +315,33 @@ public class BleDetailActivity extends AppCompatActivity implements View.OnClick
                                     bleDeviceUtil.readDescriptor(serviceUUID, chUUID, descriptorDomain.getUuid());
                                 }
                                 ReturnResult<CharacteristicDomain> result = bleDeviceUtil.readCharacteristic(serviceUUID, chUUID);
-                                LogUtil.debug("===>" + JSON.toJSONString(result));
+                                if (result.ok() && result.getData().getName().equalsIgnoreCase("opid")) {
+                                    Object o = DataConvert.convert2Obj(result.getData().getValues(), result.getData().getValType());
+                                    if (o != null) {
+                                        deviceId = o.toString();
+                                    }
+                                }
+
+                                LogUtil.debug("===>" + new Gson().toJson(result));
                                 currentProgress++;
+
+                                Object o = DataConvert.convert2Obj(characteristicDomain.getValues(), characteristicDomain.getValType());
+                                objectObjectHashMap.put(characteristicDomain.getName(), o);
 
                                 Message message = new Message();
                                 message.what = 3;
                                 message.obj = result;
                                 mHandler.sendMessage(message);
                             }
+                        }
+                        MqttClientManager mqttInstance = bleService.getInstance();
+                        if (mqttInstance != null) {
+                            subTopicName = "cmd/V01/GPRSV2/" + deviceId;
+                            pulishTopicName = "dt/V01/GPRSV2/" + deviceId;
+                            mqttInstance.subscribe(subTopicName, 0);
+                            Gson gson=new Gson();
+                            String s = gson.toJson(uploadMap);
+                            mqttInstance.publish(pulishTopicName, 0, s.getBytes(StandardCharsets.US_ASCII));
                         }
                     }
                 } catch (Exception e) {
@@ -364,7 +402,61 @@ public class BleDetailActivity extends AppCompatActivity implements View.OnClick
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void subscriber(EventBusMsg msg) {
-
+        if (msg.getTagEnum() == EventBusTagEnum.MQTT_DATA_REV) {
+            try {
+                MqttRevMessage mqttRevMessage = (MqttRevMessage) msg.getT();
+                if (!TextUtils.isEmpty(mqttRevMessage.getMsg()) && bleDeviceUtil != null) {
+                    JSONObject jsonObject = new JSONObject(mqttRevMessage.getMsg());
+                    Map<String, ServicesPropertiesDomain> serviceDataDtoMap = bleDeviceUtil.getServiceDataDtoMap();
+                    if (mqttRevMessage.getMsg().contains("\"get\"")) {
+                        String get = jsonObject.getString("get");
+                        //{"get":"dta/batp"}
+                        if (!TextUtils.isEmpty(get)) {
+                            String[] split = get.split("/");
+                            Collection<ServicesPropertiesDomain> values = serviceDataDtoMap.values();
+                            for (ServicesPropertiesDomain domain : values) {
+                                if (domain.getServiceNameEnum() != null && domain.getServiceNameEnum().getServiceName().equalsIgnoreCase(split[0])) {
+                                    Map<String, CharacteristicDomain> characterMap = domain.getCharacterMap();
+                                    Collection<CharacteristicDomain> characteristicVal = characterMap.values();
+                                    for (CharacteristicDomain characteristicDomain : characteristicVal) {
+                                        if (characteristicDomain.getName() != null && characteristicDomain.getName().equalsIgnoreCase(split[1])) {
+                                            bleDeviceUtil.readCharacteristic(domain.getUuid(), characteristicDomain.getUuid());
+                                            Toaster.show(get + "refresh success!");
+                                            refreshRecyclerView();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        JSONObject set = jsonObject.getJSONObject("set");
+                        Iterator<String> iterator = set.keys();
+                        // {"set": {"pubk":"*039 148 688 870 616 976 772#"}}
+                        while (iterator.hasNext()) {
+                            String name = iterator.next();
+                            String value = set.getString(name);
+                            Collection<ServicesPropertiesDomain> values = serviceDataDtoMap.values();
+                            for (ServicesPropertiesDomain domain : values) {
+                                if (domain.getServiceNameEnum().getServiceName().equalsIgnoreCase("cmd")) {
+                                    Map<String, CharacteristicDomain> characterMap = domain.getCharacterMap();
+                                    Collection<CharacteristicDomain> characterVal = characterMap.values();
+                                    for (CharacteristicDomain characteristicDomain : characterVal) {
+                                        if (characteristicDomain.getName().equalsIgnoreCase(name)) {
+                                            bleDeviceUtil.writeCharacteristic(domain.getUuid(), characteristicDomain.getUuid(), DataConvert.convert2Arr(value, characteristicDomain.getValType()));
+                                            Toaster.show(name + " write 【" + value + "】 success!");
+                                            bleDeviceUtil.readCharacteristic(domain.getUuid(), characteristicDomain.getUuid());
+                                            refreshRecyclerView();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 
 
@@ -384,16 +476,15 @@ public class BleDetailActivity extends AppCompatActivity implements View.OnClick
                     baseViewHolder.setText(R.id.tv_name, uni);
                     baseViewHolder.setText(R.id.tv_desc, TextUtils.isEmpty(bleDeviceInfo.getDesc()) ? "<NULL>" : bleDeviceInfo.getDesc());
 
-                    if(serviceNameEnum==ServiceNameEnum.CMD_SERVICE_NAME){
+                    if (serviceNameEnum == ServiceNameEnum.CMD_SERVICE_NAME) {
                         baseViewHolder.findView(R.id.write).setVisibility(View.VISIBLE);
                         baseViewHolder.findView(R.id.write).setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
                                 showWriteDialog(bleDeviceInfo);
-
                             }
                         });
-                    }else{
+                    } else {
                         baseViewHolder.findView(R.id.write).setVisibility(View.INVISIBLE);
                     }
                     baseViewHolder.findView(R.id.read).setVisibility(View.VISIBLE);
@@ -401,10 +492,10 @@ public class BleDetailActivity extends AppCompatActivity implements View.OnClick
                         @Override
                         public void onClick(View v) {
                             ReturnResult<CharacteristicDomain> characteristicDomainReturnResult = bleDeviceUtil.readCharacteristic(serviceUUID, bleDeviceInfo.getUuid());
-                            if(characteristicDomainReturnResult.ok()){
-                                Toaster.show("Refresh 【"+bleDeviceInfo.getName()+"】 success.");
-                            }else{
-                                Toaster.show("Refresh 【"+bleDeviceInfo.getName()+"】 fail:"+characteristicDomainReturnResult.getExceptionMsg());
+                            if (characteristicDomainReturnResult.ok()) {
+                                Toaster.show("Refresh 【" + bleDeviceInfo.getName() + "】 success.");
+                            } else {
+                                Toaster.show("Refresh 【" + bleDeviceInfo.getName() + "】 fail:" + characteristicDomainReturnResult.getExceptionMsg());
                             }
                             refreshRecyclerView();
                         }
@@ -414,8 +505,8 @@ public class BleDetailActivity extends AppCompatActivity implements View.OnClick
                 }
             }
         }
-    }
 
+    }
 
 
     private void showWriteDialog(CharacteristicDomain domain) {
@@ -474,7 +565,7 @@ public class BleDetailActivity extends AppCompatActivity implements View.OnClick
                     byte[] bytes = DataConvert.convert2Arr(inputStr, domain.getValType());
                     if (bytes != null && bleDeviceUtil != null) {
                         bleDeviceUtil.writeCharacteristic(serviceUUID, domain.getUuid(), bytes);
-                        bleDeviceUtil.readCharacteristic(serviceUUID,domain.getUuid());
+                        bleDeviceUtil.readCharacteristic(serviceUUID, domain.getUuid());
                         refreshRecyclerView();
                     }
                 } catch (Exception e) {
@@ -490,7 +581,6 @@ public class BleDetailActivity extends AppCompatActivity implements View.OnClick
     }
 
 
-
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -498,6 +588,7 @@ public class BleDetailActivity extends AppCompatActivity implements View.OnClick
             bleDeviceUtil.destroy();
         }
         bleDeviceUtil = null;
+
     }
 
     @Override

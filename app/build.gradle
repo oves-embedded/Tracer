@@ -65,7 +65,7 @@ dependencies {
     implementation 'com.github.CymChad:BaseRecyclerViewAdapterHelper:3.0.4'
 
     implementation 'org.greenrobot:eventbus:3.1.1'
-    implementation 'com.alibaba:fastjson:2.0.43'
+//    implementation 'com.alibaba:fastjson:2.0.43'
 
     implementation 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.1.0'
     implementation 'org.eclipse.paho:org.eclipse.paho.android.service:1.1.1'
@@ -88,5 +88,7 @@ dependencies {
 //    implementation  'io.github.scwang90:refresh-header-two-level:2.1.0'   //二级刷新头
 //    implementation  'io.github.scwang90:refresh-footer-ball:2.1.0'        //球脉冲加载
     implementation  'io.github.scwang90:refresh-footer-classics:2.1.0'    //经典加载
+
+    implementation 'com.google.code.gson:gson:2.10.1'
 
 }

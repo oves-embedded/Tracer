@@ -6,7 +6,6 @@ import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
 
-import com.alibaba.fastjson.JSON;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import androidx.annotation.NonNull;
@@ -15,6 +14,7 @@ import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.NavigationUI;
 
+import com.google.gson.Gson;
 import com.hjq.permissions.OnPermissionCallback;
 import com.hjq.permissions.Permission;
 import com.hjq.permissions.XXPermissions;
@@ -73,7 +73,13 @@ public class MainActivity extends AppCompatActivity {
 
 
     public void startScan() {
-        XXPermissions.with(MainActivity.this).permission(Permission.BLUETOOTH_SCAN).permission(Permission.BLUETOOTH_CONNECT).permission(Permission.BLUETOOTH_ADVERTISE).permission(Permission.ACCESS_FINE_LOCATION).permission(Permission.ACCESS_COARSE_LOCATION).interceptor(new PermissionInterceptor()).request(new OnPermissionCallback() {
+        XXPermissions.with(MainActivity.this)
+                .permission(Permission.BLUETOOTH_SCAN)
+                .permission(Permission.BLUETOOTH_CONNECT)
+                .permission(Permission.BLUETOOTH_ADVERTISE)
+                .permission(Permission.ACCESS_FINE_LOCATION)
+                .permission(Permission.ACCESS_COARSE_LOCATION)
+                .interceptor(new PermissionInterceptor()).request(new OnPermissionCallback() {
             @Override
             public void onGranted(@NonNull List<String> permissions, boolean allGranted) {
                 if (!allGranted) {
@@ -91,7 +97,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void subscriber(EventBusMsg msg) {
-        LogUtil.error(JSON.toJSONString(msg));
+        LogUtil.error(new Gson().toJson(msg));
 
         if (list != null && !list.isEmpty()) {
             for (EventCallBack callBack : list) {

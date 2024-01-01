@@ -1,6 +1,7 @@
 package com.ov.tracker.entity;
 
-import com.alibaba.fastjson.JSON;
+import com.google.gson.Gson;
+import com.ov.tracker.enums.ServiceNameEnum;
 
 import java.util.Map;
 
@@ -8,11 +9,13 @@ public class ServicesPropertiesDomain {
 
     private String uuid;
 
-    private String serviceName;
+    private String serviceProperty;
 
     private String type;
 
     private String deviceOpid;
+
+    private ServiceNameEnum serviceNameEnum;
 
     private Map<String,CharacteristicDomain> characterMap;
 
@@ -41,12 +44,12 @@ public class ServicesPropertiesDomain {
         this.uuid = uuid;
     }
 
-    public String getServiceName() {
-        return serviceName;
+    public String getServiceProperty() {
+        return serviceProperty;
     }
 
-    public void setServiceName(String serviceName) {
-        this.serviceName = serviceName;
+    public void setServiceProperty(String serviceProperty) {
+        this.serviceProperty = serviceProperty;
     }
 
     public String getType() {
@@ -57,9 +60,16 @@ public class ServicesPropertiesDomain {
         this.type = type;
     }
 
+    public ServiceNameEnum getServiceNameEnum() {
+        return serviceNameEnum;
+    }
+
+    public void setServiceNameEnum(ServiceNameEnum serviceNameEnum) {
+        this.serviceNameEnum = serviceNameEnum;
+    }
 
     @Override
     public String toString() {
-        return JSON.toJSONString(this);
+        return new Gson().toJson(this);
     }
 }

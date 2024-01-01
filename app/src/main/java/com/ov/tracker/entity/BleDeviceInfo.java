@@ -1,7 +1,7 @@
 package com.ov.tracker.entity;
 
 
-import com.alibaba.fastjson.JSON;
+import com.google.gson.Gson;
 
 public class BleDeviceInfo {
 
@@ -93,6 +93,6 @@ public class BleDeviceInfo {
 
     @Override
     public String toString() {
-        return JSON.toJSONString(this);
+        return new Gson().toJson(this);
     }
 }

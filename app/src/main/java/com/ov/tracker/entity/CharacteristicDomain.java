@@ -1,6 +1,7 @@
 package com.ov.tracker.entity;
 
-import com.alibaba.fastjson.JSON;
+
+import com.google.gson.Gson;
 
 import java.io.Serializable;
 import java.util.Map;
@@ -126,6 +127,6 @@ public class CharacteristicDomain implements Serializable {
 
     @Override
     public String toString() {
-        return JSON.toJSONString(this);
+        return new Gson().toJson(this);
     }
 }

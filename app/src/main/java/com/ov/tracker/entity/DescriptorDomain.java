@@ -1,6 +1,7 @@
 package com.ov.tracker.entity;
 
-import com.alibaba.fastjson.JSON;
+
+import com.google.gson.Gson;
 
 public class DescriptorDomain {
 
@@ -28,7 +29,7 @@ public class DescriptorDomain {
 
     @Override
     public String toString() {
-        return JSON.toJSONString(this);
+        return new Gson().toJson(this);
     }
 
 
