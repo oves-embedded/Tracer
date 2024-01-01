@@ -58,7 +58,7 @@ public class HomeFragment extends Fragment implements EventCallBack {
         list=new ArrayList<>();
         activity2.addCallBack(this);
         refreshLayout.setEnableLoadMore(false);
-        bleAdapter=new BleAdapter(R.layout.item_ble_detail);
+        bleAdapter=new BleAdapter(R.layout.item_ble_list);
         recyclerView.setAdapter(bleAdapter);
         refreshLayout.setOnRefreshListener(new OnRefreshListener() {
             @Override

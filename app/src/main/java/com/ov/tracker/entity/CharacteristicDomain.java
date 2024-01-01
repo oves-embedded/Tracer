@@ -12,8 +12,7 @@ public class CharacteristicDomain implements Serializable {
     private Integer properties;
     private String desc;
     private byte[] values;
-    private Object realVal;
-    private int valType;
+    private Integer valType;
     private Map<String,DescriptorDomain> descMap;
 
     private boolean enableWrite=false;
@@ -74,21 +73,14 @@ public class CharacteristicDomain implements Serializable {
         this.descMap = descMap;
     }
 
-    public int getValType() {
+    public Integer getValType() {
         return valType;
     }
 
-    public void setValType(int valType) {
+    public void setValType(Integer valType) {
         this.valType = valType;
     }
 
-    public Object getRealVal() {
-        return realVal;
-    }
-
-    public void setRealVal(Object realVal) {
-        this.realVal = realVal;
-    }
 
     public String getDesc() {
         return desc;
