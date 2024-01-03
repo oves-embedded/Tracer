@@ -14,8 +14,6 @@ public class DataConvert {
 
     public static Object convert2Obj(byte[] b, int valType) {
         try{
-            if(b!=null)
-                LogUtil.error("：b==>"+ByteUtil.bytes2HexString(b)+"  valType==>"+valType);
 
             if (b != null && b.length > 0) {
                 switch (valType) {
@@ -28,8 +26,8 @@ public class DataConvert {
 //                        if(b.length!=4){
 //                            LogUtil.error("非法参数：b==>"+ByteUtil.bytes2HexString(b)+"  valType==>"+valType);
 //                        }
-                        return ByteUtil.byte2int(ByteUtil.reverse(b));
-//                        return ByteUtil.byte2int(new byte[]{b[3],b[2],b[1],b[0]});
+//                        return ByteUtil.byte2int(ByteUtil.reverse(b));
+                        return ByteUtil.byte2int(new byte[]{b[3],b[2],b[1],b[0]});
                     case 4:
                         return null;
                     case 5:

@@ -72,7 +72,7 @@ public class BleDeviceUtil {
         //autoConnect==false,表示立即发起连接，否则等蓝牙空闲才会连接
         bluetoothDevice.connectGatt(context, false, bluetoothGattCallback, BluetoothDevice.TRANSPORT_AUTO);
         try {
-            countDownLatch.await(10000, TimeUnit.MILLISECONDS);
+            countDownLatch.await(20000, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
             e.printStackTrace();
         }

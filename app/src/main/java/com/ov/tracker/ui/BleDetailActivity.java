@@ -56,6 +56,7 @@ import com.ov.tracker.enums.EventBusTagEnum;
 import com.ov.tracker.enums.ServiceNameEnum;
 import com.ov.tracker.service.BleService;
 import com.ov.tracker.utils.BleDeviceUtil;
+import com.ov.tracker.utils.ByteUtil;
 import com.ov.tracker.utils.LogUtil;
 import com.ov.tracker.utils.MqttClientManager;
 import com.ov.tracker.utils.permission.PermissionInterceptor;
@@ -472,6 +473,13 @@ public class BleDetailActivity extends AppCompatActivity implements View.OnClick
                 try {
                     String name = bleDeviceInfo.getName();
                     Object realVal = DataConvert.convert2Obj(bleDeviceInfo.getValues(), bleDeviceInfo.getValType());
+
+//                    LogUtil.error("convert2Obj0:"+name);
+//                    LogUtil.error("convert2Obj1:"+ bleDeviceInfo.getValues()==null?"Null":ByteUtil.bytes2HexString(bleDeviceInfo.getValues()));
+//                    LogUtil.error("convert2Obj2:"+ " valType:"+bleDeviceInfo.getValType());
+//                    LogUtil.error("convert2Obj3:"+" realVal:"+realVal==null?"null":realVal.toString());
+
+
                     String uni = (TextUtils.isEmpty(name) ? "-" : name) + ":" + (realVal == null ? "<NULL>" : realVal.toString());
                     baseViewHolder.setText(R.id.tv_name, uni);
                     baseViewHolder.setText(R.id.tv_desc, TextUtils.isEmpty(bleDeviceInfo.getDesc()) ? "<NULL>" : bleDeviceInfo.getDesc());

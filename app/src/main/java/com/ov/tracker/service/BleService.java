@@ -86,12 +86,10 @@ public class BleService extends Service implements MqttCallback, LocationListene
         initBleConfig();
         instance = MqttClientManager.getInstance(this);
         instance.createConnect("tcp://mqtt-2.omnivoltaic.com:1883", null, null);
-
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             return;
         }
-
         locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 2000, 0, BleService.this);
     }
 
@@ -196,7 +194,7 @@ public class BleService extends Service implements MqttCallback, LocationListene
         @Override
         public void onScanFailed(int errorCode) {
             super.onScanFailed(errorCode);
-            LogUtil.debug("ScanCallback==>onScanFailed");
+            LogUtil.error("ScanCallback==>onScanFailed:"+errorCode);
         }
     };
 
@@ -276,9 +274,9 @@ public class BleService extends Service implements MqttCallback, LocationListene
                 bleList.add(fullName);
             }
             Map<String,Object>map=new HashMap<>();
-            map.put("latitude",latitude);
-            map.put("longitude",longitude);
-            map.put("timestamp",System.currentTimeMillis());
+            Double[] loc=new Double[]{latitude,longitude};
+            map.put("location",loc);
+            map.put("time",new Date());
             map.put("bleList",bleList);
 
             if(instance!=null){

@@ -8,6 +8,7 @@ import com.hjq.toast.style.WhiteToastStyle;
 import com.ov.tracker.R;
 import com.ov.tracker.dao.DaoMaster;
 import com.ov.tracker.dao.DaoSession;
+import com.ov.tracker.entity.http.LoginResult;
 import com.scwang.smart.refresh.footer.ClassicsFooter;
 import com.scwang.smart.refresh.header.ClassicsHeader;
 import com.scwang.smart.refresh.layout.SmartRefreshLayout;
@@ -27,6 +28,8 @@ public class MyApplication extends Application {
     public static DaoSession sDaoSession;
 
     public static DaoMaster.DevOpenHelper mDevOpenHelper = null;
+
+    private static LoginResult.DataDTO userDataDto;
 
     //static 代码段可以防止内存泄露
     static {
@@ -62,5 +65,11 @@ public class MyApplication extends Application {
         Toaster.init(this, new WhiteToastStyle());
     }
 
+    public static LoginResult.DataDTO getUserDataDto() {
+        return userDataDto;
+    }
 
+    public static void setUserDataDto(LoginResult.DataDTO userDataDto) {
+        MyApplication.userDataDto = userDataDto;
+    }
 }

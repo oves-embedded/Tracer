@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="EditText.Grey" parent="@style/Theme.Tracker">
+        <item name="colorControlActivated">#666666</item>
+        <item name="colorControlHighlight">#666666</item>
+        <item name="colorControlNormal">#999999</item>
+    </style>
+
+</resources>
