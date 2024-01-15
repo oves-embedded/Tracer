@@ -16,11 +16,15 @@ import android.os.Message;
 import android.text.InputType;
 import android.text.TextUtils;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -32,6 +36,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatButton;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.chad.library.adapter.base.BaseQuickAdapter;
@@ -44,6 +50,7 @@ import com.hjq.permissions.Permission;
 import com.hjq.permissions.XXPermissions;
 import com.hjq.toast.Toaster;
 import com.ov.tracker.R;
+import com.ov.tracker.application.MyApplication;
 import com.ov.tracker.constants.DataConvert;
 import com.ov.tracker.constants.ReturnResult;
 import com.ov.tracker.entity.BleDeviceInfo;
@@ -55,6 +62,7 @@ import com.ov.tracker.entity.ServicesPropertiesDomain;
 import com.ov.tracker.enums.EventBusTagEnum;
 import com.ov.tracker.enums.ServiceNameEnum;
 import com.ov.tracker.service.BleService;
+import com.ov.tracker.ui.dialog.WebViewDialog;
 import com.ov.tracker.utils.BleDeviceUtil;
 import com.ov.tracker.utils.ByteUtil;
 import com.ov.tracker.utils.LogUtil;
@@ -67,15 +75,20 @@ import org.greenrobot.eventbus.ThreadMode;
 import org.json.JSONObject;
 
 import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TimeZone;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -102,14 +115,15 @@ public class BleDetailActivity extends AppCompatActivity implements View.OnClick
     TextView tv_dta;
     @BindView(R.id.tv_cmd)
     TextView tv_cmd;
+    @BindView(R.id.btn_show)
+    Button btn_show;
 
     private ServiceNameEnum serviceNameEnum = ServiceNameEnum.ATT_SERVICE_NAME;
     private String serviceUUID;
-
     private String deviceId;
     private BleAttrAdapter bleAttrAdapter;
-
     private String subTopicName, pulishTopicName;
+    private boolean showCheck = false;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -127,7 +141,14 @@ public class BleDetailActivity extends AppCompatActivity implements View.OnClick
 
         bleAttrAdapter = new BleAttrAdapter(R.layout.item_ble_attr);
         recyclerView.setAdapter(bleAttrAdapter);
-
+        bleAttrAdapter.setNewInstance(domainList);
+        titleBar.setTitle(info.getFullName());
+        btn_show.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showDialogFullscreen();
+            }
+        });
         titleBar.setOnTitleBarListener(new OnTitleBarListener() {
             @Override
             public void onLeftClick(TitleBar titleBar) {
@@ -136,6 +157,10 @@ public class BleDetailActivity extends AppCompatActivity implements View.OnClick
 
             @Override
             public void onRightClick(TitleBar titleBar) {
+                showCheck = !showCheck;
+                bleAttrAdapter.notifyDataSetChanged();
+                btn_show.setVisibility(showCheck?View.VISIBLE:View.GONE);
+                btn_show.setText("Selected: ["+selMap.values().size()+"] ");
             }
         });
 
@@ -156,27 +181,32 @@ public class BleDetailActivity extends AppCompatActivity implements View.OnClick
         tv_dta.setBackgroundResource(R.drawable.shape_item_normal);
         tv_cmd.setBackgroundResource(R.drawable.shape_item_normal);
         tv_dia.setBackgroundResource(R.drawable.shape_item_normal);
+        ServiceNameEnum clickEnum = null;
         switch (v.getId()) {
             case R.id.tv_att:
-                serviceNameEnum = ServiceNameEnum.ATT_SERVICE_NAME;
+                clickEnum = ServiceNameEnum.ATT_SERVICE_NAME;
                 tv_att.setBackgroundResource(R.drawable.shape_item_selector);
                 break;
             case R.id.tv_sts:
-                serviceNameEnum = ServiceNameEnum.STS_SERVICE_NAME;
+                clickEnum = ServiceNameEnum.STS_SERVICE_NAME;
                 tv_sts.setBackgroundResource(R.drawable.shape_item_selector);
                 break;
             case R.id.tv_dta:
-                serviceNameEnum = ServiceNameEnum.DTA_SERVICE_NAME;
+                clickEnum = ServiceNameEnum.DTA_SERVICE_NAME;
                 tv_dta.setBackgroundResource(R.drawable.shape_item_selector);
                 break;
             case R.id.tv_cmd:
-                serviceNameEnum = ServiceNameEnum.CMD_SERVICE_NAME;
+                clickEnum = ServiceNameEnum.CMD_SERVICE_NAME;
                 tv_cmd.setBackgroundResource(R.drawable.shape_item_selector);
                 break;
             case R.id.tv_dia:
-                serviceNameEnum = ServiceNameEnum.DIA_SERVICE_NAME;
+                clickEnum = ServiceNameEnum.DIA_SERVICE_NAME;
                 tv_dia.setBackgroundResource(R.drawable.shape_item_selector);
                 break;
+        }
+        if (clickEnum != null && clickEnum != serviceNameEnum) {
+            serviceNameEnum = clickEnum;
+            selMap.clear();
         }
         refreshRecyclerView();
     }
@@ -252,6 +282,8 @@ public class BleDetailActivity extends AppCompatActivity implements View.OnClick
         }
     };
 
+    private List<CharacteristicDomain> domainList = new CopyOnWriteArrayList<>();
+
     private void refreshRecyclerView() {
         if (bleDeviceUtil != null) {
             Map<String, ServicesPropertiesDomain> serviceDataDtoMap = bleDeviceUtil.getServiceDataDtoMap();
@@ -270,14 +302,17 @@ public class BleDetailActivity extends AppCompatActivity implements View.OnClick
                             }
                         });
 
-                        bleAttrAdapter.setNewInstance(characteristicDomains);
                         serviceUUID = domain.getUuid();
+                        domainList.clear();
+                        domainList.addAll(characteristicDomains);
+                        bleAttrAdapter.notifyDataSetChanged();
                         return;
                     }
                 }
             }
         }
-        bleAttrAdapter.setNewInstance(new ArrayList<>());
+        domainList.clear();
+        bleAttrAdapter.notifyDataSetChanged();
     }
 
 
@@ -306,7 +341,7 @@ public class BleDetailActivity extends AppCompatActivity implements View.OnClick
                             String serviceUUID = servicesPropertiesDomain.getUuid();
 
                             HashMap<String, Object> objectObjectHashMap = new HashMap<>();
-                            uploadMap.put(servicesPropertiesDomain.getServiceNameEnum().getServiceName(),objectObjectHashMap);
+                            uploadMap.put(servicesPropertiesDomain.getServiceNameEnum().getServiceName(), objectObjectHashMap);
 
                             for (CharacteristicDomain characteristicDomain : chValues) {
                                 String chUUID = characteristicDomain.getUuid();
@@ -340,9 +375,27 @@ public class BleDetailActivity extends AppCompatActivity implements View.OnClick
                             subTopicName = "cmd/V01/GPRSV2/" + deviceId;
                             pulishTopicName = "dt/V01/GPRSV2/" + deviceId;
                             mqttInstance.subscribe(subTopicName, 0);
-                            Gson gson=new Gson();
+                            Gson gson = new Gson();
                             String s = gson.toJson(uploadMap);
                             mqttInstance.publish(pulishTopicName, 0, s.getBytes(StandardCharsets.US_ASCII));
+
+                            Map<String,Object>map=new HashMap<>();
+                            map.put("_rlat",MyApplication.latitude);
+                            map.put("_rlon",MyApplication.longitude);
+                            // 设置要显示的格式（这里选择了ISO-8601格式）
+                            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
+                            // 设置时区为UTC+0
+                            TimeZone timeZone = TimeZone.getTimeZone("UTC+0");
+                            sdf.setTimeZone(timeZone);
+                            // 进行日期格式化并输出结果
+                            String formattedDate = sdf.format(new Date());
+                            map.put("_ctod",formattedDate);
+                            map.put("_cudu", MyApplication.userDataDto.getSignInUser().getEmail());
+                            map.put("_opid",deviceId);
+                            if(mqttInstance!=null){
+                                String data = new Gson().toJson(map);
+                                mqttInstance.publish("/dt/ov/location/dev/",0,data.getBytes(StandardCharsets.US_ASCII));
+                            }
                         }
                     }
                 } catch (Exception e) {
@@ -461,6 +514,9 @@ public class BleDetailActivity extends AppCompatActivity implements View.OnClick
     }
 
 
+    private Map<String, CharacteristicDomain> selMap = new ConcurrentHashMap<>();
+
+
     class BleAttrAdapter extends BaseQuickAdapter<CharacteristicDomain, BaseViewHolder> {
 
         public BleAttrAdapter(int layoutResId) {
@@ -473,13 +529,6 @@ public class BleDetailActivity extends AppCompatActivity implements View.OnClick
                 try {
                     String name = bleDeviceInfo.getName();
                     Object realVal = DataConvert.convert2Obj(bleDeviceInfo.getValues(), bleDeviceInfo.getValType());
-
-//                    LogUtil.error("convert2Obj0:"+name);
-//                    LogUtil.error("convert2Obj1:"+ bleDeviceInfo.getValues()==null?"Null":ByteUtil.bytes2HexString(bleDeviceInfo.getValues()));
-//                    LogUtil.error("convert2Obj2:"+ " valType:"+bleDeviceInfo.getValType());
-//                    LogUtil.error("convert2Obj3:"+" realVal:"+realVal==null?"null":realVal.toString());
-
-
                     String uni = (TextUtils.isEmpty(name) ? "-" : name) + ":" + (realVal == null ? "<NULL>" : realVal.toString());
                     baseViewHolder.setText(R.id.tv_name, uni);
                     baseViewHolder.setText(R.id.tv_desc, TextUtils.isEmpty(bleDeviceInfo.getDesc()) ? "<NULL>" : bleDeviceInfo.getDesc());
@@ -496,6 +545,20 @@ public class BleDetailActivity extends AppCompatActivity implements View.OnClick
                         baseViewHolder.findView(R.id.write).setVisibility(View.INVISIBLE);
                     }
                     baseViewHolder.findView(R.id.read).setVisibility(View.VISIBLE);
+                    CheckBox checkBox = baseViewHolder.findView(R.id.checkBox);
+                    checkBox.setChecked(selMap.containsKey(bleDeviceInfo.getUuid()));
+                    checkBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                        @Override
+                        public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                            if (isChecked) {
+                                selMap.put(bleDeviceInfo.getUuid(), bleDeviceInfo);
+                            } else {
+                                selMap.remove(bleDeviceInfo.getUuid());
+                            }
+                            btn_show.setText("Selected: ["+selMap.values().size()+"] ");
+                        }
+                    });
+                    checkBox.setVisibility(showCheck ? View.VISIBLE : View.INVISIBLE);
                     baseViewHolder.findView(R.id.read).setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
@@ -588,6 +651,49 @@ public class BleDetailActivity extends AppCompatActivity implements View.OnClick
         dialog.getWindow().setAttributes(lp);
     }
 
+    WebViewDialog webViewDialog;
+    private void showDialogFullscreen() {
+        Collection<CharacteristicDomain> selDomain = selMap.values();
+        if (selDomain == null || selDomain.size() <= 0) {
+            Toaster.show("Please select at least one option.");
+            return;
+        }
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        webViewDialog = new WebViewDialog();
+        FragmentTransaction transaction = fragmentManager.beginTransaction();
+        transaction.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN);
+        transaction.add(android.R.id.content, webViewDialog).addToBackStack(null).commit();
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (!webViewDialog.isHidden() && webViewDialog.isVisible()) {
+                    if (bleDeviceUtil != null) {
+                        for (CharacteristicDomain domain : selDomain) {
+                            try {
+                                ReturnResult<CharacteristicDomain> result = bleDeviceUtil.readCharacteristic(serviceUUID, domain.getUuid());
+                                if(result.ok()) {
+                                    CharacteristicDomain characteristicDomain=result.getData();
+                                    LogUtil.error("characteristicDomain==>" + new Gson().toJson(characteristicDomain));
+                                    BleDetailActivity.this.runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            webViewDialog.pushData(characteristicDomain);
+                                        }
+                                    });
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                    mHandler.postDelayed(this, 1000);
+                } else {
+                    return;
+                }
+            }
+        }, 1000);
+    }
+
 
     @Override
     protected void onDestroy() {
@@ -611,6 +717,30 @@ public class BleDetailActivity extends AppCompatActivity implements View.OnClick
         super.onStop();
         EventBus.getDefault().unregister(this);
     }
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        if (webViewDialog != null && !webViewDialog.isHidden()) {
+            webViewDialog.dismiss();
+            return;
+        }
+        BleDetailActivity.this.finish();
+    }
 
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        switch (event.getAction()) {
+            case KeyEvent.KEYCODE_BACK:
+                if (webViewDialog != null && !webViewDialog.isHidden()) {
+                    webViewDialog.dismiss();
+                    break;
+                }
+                BleDetailActivity.this.finish();
+                break;
+        }
+
+        return super.onKeyDown(keyCode, event);
+
+    }
 
 }

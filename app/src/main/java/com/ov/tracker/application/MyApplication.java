@@ -29,7 +29,12 @@ public class MyApplication extends Application {
 
     public static DaoMaster.DevOpenHelper mDevOpenHelper = null;
 
-    private static LoginResult.DataDTO userDataDto;
+    public static LoginResult.DataDTO userDataDto;
+
+    public static double latitude = 0.0;
+    public static double longitude = 0.0;
+
+
 
     //static 代码段可以防止内存泄露
     static {

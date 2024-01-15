@@ -14,6 +14,7 @@ public class CharacteristicDomain implements Serializable {
     private String desc;
     private byte[] values;
     private Integer valType;
+    private Object realVal;
     private Map<String,DescriptorDomain> descMap;
 
     private boolean enableWrite=false;
@@ -28,6 +29,14 @@ public class CharacteristicDomain implements Serializable {
 
     public boolean isEnableWrite() {
         return enableWrite;
+    }
+
+    public Object getRealVal() {
+        return realVal;
+    }
+
+    public void setRealVal(Object realVal) {
+        this.realVal = realVal;
     }
 
     public void setEnableWrite(boolean enableWrite) {

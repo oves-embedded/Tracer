@@ -14,13 +14,11 @@ public class DataConvert {
 
     public static Object convert2Obj(byte[] b, int valType) {
         try{
-
             if (b != null && b.length > 0) {
                 switch (valType) {
                     case 0:
-                        return ByteUtil.byte2int(new byte[]{0x00, 0x00, b[1], b[0]});
                     case 1:
-                        return ByteUtil.byte2short(ByteUtil.reverse(b));
+                        return ByteUtil.byte2short(new byte[]{b[1], b[0]});
                     case 2:
                     case 3:
 //                        if(b.length!=4){

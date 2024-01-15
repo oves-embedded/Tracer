@@ -14,6 +14,7 @@ import android.content.Context;
 
 import androidx.annotation.NonNull;
 
+import com.ov.tracker.constants.DataConvert;
 import com.ov.tracker.constants.ReturnResult;
 import com.ov.tracker.entity.CharacteristicDomain;
 import com.ov.tracker.entity.DescriptorDomain;
@@ -491,6 +492,7 @@ public class BleDeviceUtil {
                 String serviceUUID = characteristic.getService().getUuid().toString();
                 CharacteristicDomain characteristicDataDto = serviceDataDtoMap.get(serviceUUID).getCharacterMap().get(characteristicUUID);
                 characteristicDataDto.setValues(characteristic.getValue());
+                characteristicDataDto.setRealVal(DataConvert.convert2Obj(characteristicDataDto.getValues(),characteristicDataDto.getValType()));
                 if (countDownLatch != null) {
                     countDownLatch.countDown();
                 }

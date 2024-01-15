@@ -4,7 +4,7 @@
 
     <!--solid标签: shape图形背景色-->
     <!--PS: 这个和上面的gradient标签会互斥, 一个是设置背景色, 一个是设置渐变色-->
-    <solid android:color="#72A8EB" />
+    <solid android:color="#0F75F3" />
 
     <!--stroke标签: 边框(这里小数是有效的,但是会导致显示不全)-->
     <!--width 边框的宽度-->

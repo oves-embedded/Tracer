@@ -111,9 +111,23 @@
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         android:layout_marginLeft="10dp"
         android:layout_marginRight="10dp"/>
-
+    <Button
+        android:id="@+id/btn_show"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginLeft="-4dp"
+        android:layout_marginRight="-4dp"
+        android:background="@drawable/btn_rounded_primary"
+        android:text=""
+        android:textAllCaps="false"
+        android:textColor="@android:color/white"
+        android:layout_marginHorizontal="10dp"
+        android:layout_marginBottom="10dp"
+        android:visibility="gone"
+        android:textStyle="bold" />
 </LinearLayout>

@@ -38,6 +38,7 @@ import com.hjq.permissions.XXPermissions;
 import com.hjq.toast.Toaster;
 import com.ov.tracker.MainActivity;
 import com.ov.tracker.R;
+import com.ov.tracker.application.MyApplication;
 import com.ov.tracker.entity.BleDeviceInfo;
 import com.ov.tracker.entity.EventBusMsg;
 import com.ov.tracker.entity.MqttRevMessage;
@@ -63,6 +64,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class BleService extends Service implements MqttCallback, LocationListener {
@@ -266,6 +268,8 @@ public class BleService extends Service implements MqttCallback, LocationListene
         try{
             double latitude = location.getLatitude();
             double longitude = location.getLongitude();
+            MyApplication.latitude=latitude;
+            MyApplication.longitude=longitude;
             Iterator<BleDeviceInfo> iterator = bleDeviceInfoMap.values().iterator();
             List<String>bleList=new ArrayList<>();
             while(iterator.hasNext()){
@@ -274,15 +278,25 @@ public class BleService extends Service implements MqttCallback, LocationListene
                 bleList.add(fullName);
             }
             Map<String,Object>map=new HashMap<>();
+
+            // 设置要显示的格式（这里选择了ISO-8601格式）
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
+            // 设置时区为UTC+0
+            TimeZone timeZone = TimeZone.getTimeZone("UTC+0");
+            sdf.setTimeZone(timeZone);
+            // 进行日期格式化并输出结果
+            String formattedDate = sdf.format(new Date());
             Double[] loc=new Double[]{latitude,longitude};
-            map.put("location",loc);
-            map.put("time",new Date());
-            map.put("bleList",bleList);
+            map.put("_rlat",latitude);
+            map.put("_rlon",longitude);
+            map.put("_ctod",formattedDate);
+            map.put("_cudu", MyApplication.userDataDto.getSignInUser().getEmail());
+            map.put("_apid",bleList);
 
             if(instance!=null){
                 String s = new Gson().toJson(map);
                 LogUtil.debug("location===>"+s);
-                instance.publish("/dt/ov/location/",0,s.getBytes(StandardCharsets.US_ASCII));
+                instance.publish("/dt/ov/location/nearby/",0,s.getBytes(StandardCharsets.US_ASCII));
             }
         }catch (Exception e){
             e.printStackTrace();
