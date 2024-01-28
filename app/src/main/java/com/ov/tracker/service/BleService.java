@@ -44,6 +44,7 @@ import com.ov.tracker.entity.EventBusMsg;
 import com.ov.tracker.entity.MqttRevMessage;
 import com.ov.tracker.enums.EventBusTagEnum;
 import com.ov.tracker.utils.BleDeviceUtil;
+import com.ov.tracker.utils.ByteUtil;
 import com.ov.tracker.utils.LogUtil;
 import com.ov.tracker.utils.MqttClientManager;
 import com.ov.tracker.utils.permission.PermissionInterceptor;
@@ -287,16 +288,19 @@ public class BleService extends Service implements MqttCallback, LocationListene
             // 进行日期格式化并输出结果
             String formattedDate = sdf.format(new Date());
             Double[] loc=new Double[]{latitude,longitude};
-            map.put("_rlat",latitude);
-            map.put("_rlon",longitude);
-            map.put("_ctod",formattedDate);
-            map.put("_cudu", MyApplication.userDataDto.getSignInUser().getEmail());
-            map.put("_apid",bleList);
+            String email = MyApplication.userDataDto.getSignInUser().getEmail();
+            byte[] bytes = email.getBytes(StandardCharsets.UTF_8);
+            String s1 = ByteUtil.bytes2HexString(bytes);
+            map.put("rlat",latitude);
+            map.put("rlon",longitude);
+            map.put("ctod",formattedDate);
+            map.put("cudu", email);
+            map.put("apid",bleList);
 
             if(instance!=null){
                 String s = new Gson().toJson(map);
                 LogUtil.debug("location===>"+s);
-                instance.publish("/dt/ov/location/nearby/",0,s.getBytes(StandardCharsets.US_ASCII));
+                instance.publish("dt/V01/Phone/"+s1,0,s.getBytes(StandardCharsets.US_ASCII));
             }
         }catch (Exception e){
             e.printStackTrace();

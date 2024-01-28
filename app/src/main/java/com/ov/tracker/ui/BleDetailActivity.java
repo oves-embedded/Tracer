@@ -373,15 +373,17 @@ public class BleDetailActivity extends AppCompatActivity implements View.OnClick
                         MqttClientManager mqttInstance = bleService.getInstance();
                         if (mqttInstance != null) {
                             subTopicName = "cmd/V01/GPRSV2/" + deviceId;
-                            pulishTopicName = "dt/V01/GPRSV2/" + deviceId;
+                            //设备触发上传完整数据时
+                            pulishTopicName = "dt/V01/Blephone/" + deviceId;
                             mqttInstance.subscribe(subTopicName, 0);
                             Gson gson = new Gson();
                             String s = gson.toJson(uploadMap);
+
                             mqttInstance.publish(pulishTopicName, 0, s.getBytes(StandardCharsets.US_ASCII));
 
                             Map<String,Object>map=new HashMap<>();
-                            map.put("_rlat",MyApplication.latitude);
-                            map.put("_rlon",MyApplication.longitude);
+                            map.put("rlat",MyApplication.latitude);
+                            map.put("rlon",MyApplication.longitude);
                             // 设置要显示的格式（这里选择了ISO-8601格式）
                             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
                             // 设置时区为UTC+0
@@ -389,12 +391,13 @@ public class BleDetailActivity extends AppCompatActivity implements View.OnClick
                             sdf.setTimeZone(timeZone);
                             // 进行日期格式化并输出结果
                             String formattedDate = sdf.format(new Date());
-                            map.put("_ctod",formattedDate);
-                            map.put("_cudu", MyApplication.userDataDto.getSignInUser().getEmail());
-                            map.put("_opid",deviceId);
+                            map.put("ctod",formattedDate);
+                            map.put("cudu", MyApplication.userDataDto.getSignInUser().getEmail());
+                            map.put("opid",deviceId);
                             if(mqttInstance!=null){
                                 String data = new Gson().toJson(map);
-                                mqttInstance.publish("/dt/ov/location/dev/",0,data.getBytes(StandardCharsets.US_ASCII));
+                                //设备触发上传设备所属人数据
+                                mqttInstance.publish("dt/V01/Phone/" + deviceId,0,data.getBytes(StandardCharsets.US_ASCII));
                             }
                         }
                     }
