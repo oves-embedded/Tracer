@@ -49,6 +49,11 @@ android {
             jniLibs.srcDirs = ['libs']
         }
     }
+    lintOptions {
+        disable 'InvalidPackage'
+        //只要添加下面这一句就可以了
+        disable 'MissingTranslation'
+    }
 
 }
 
