@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Tracker</string>
+    <string name="app_name">Tracer</string>
 
     <string name="demo_obtain_permission_success_hint">获取%s成功</string>
     <string name="demo_return_activity_result_hint">检测到你刚刚从权限设置界面返回回来</string>
