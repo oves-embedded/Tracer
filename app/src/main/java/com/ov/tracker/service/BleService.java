@@ -39,6 +39,7 @@ import com.hjq.toast.Toaster;
 import com.ov.tracker.MainActivity;
 import com.ov.tracker.R;
 import com.ov.tracker.application.MyApplication;
+import com.ov.tracker.constants.CommonConstant;
 import com.ov.tracker.entity.BleDeviceInfo;
 import com.ov.tracker.entity.EventBusMsg;
 import com.ov.tracker.entity.MqttRevMessage;
@@ -47,6 +48,8 @@ import com.ov.tracker.utils.BleDeviceUtil;
 import com.ov.tracker.utils.ByteUtil;
 import com.ov.tracker.utils.LogUtil;
 import com.ov.tracker.utils.MqttClientManager;
+import com.ov.tracker.utils.MqttClientUtil;
+import com.ov.tracker.utils.SharedPreferencesUtils;
 import com.ov.tracker.utils.permission.PermissionInterceptor;
 import com.ov.tracker.utils.permission.PermissionNameConvert;
 
@@ -82,18 +85,35 @@ public class BleService extends Service implements MqttCallback, LocationListene
 
     private LocationManager locationManager = null;
 
-
+    private MqttClientUtil productMqttClientUtil=null;
     @Override
     public void onCreate() {
         super.onCreate();
         initBleConfig();
         instance = MqttClientManager.getInstance(this);
-        instance.createConnect("tcp://mqtt-2.omnivoltaic.com:1883", null, null);
+
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             return;
         }
         locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 2000, 0, BleService.this);
+
+        new Thread(){
+            @Override
+            public void run() {
+                instance.createConnect("tcp://mqtt-client1.omnivoltaic.com:18884", "Client1", "3QtpFnDS");
+//                instance.createConnect("tcp://mqtt-2.omnivoltaic.com:1883", null, null);
+            }
+        }.start();
+
+        productMqttClientUtil = new MqttClientUtil("mqtt-factory.omnivoltaic.com", "18883", "Admin", "7xzUV@MT", null);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                productMqttClientUtil.createConnect();
+            }
+        }).start();
+
     }
 
     public void initBleConfig() {
@@ -302,6 +322,7 @@ public class BleService extends Service implements MqttCallback, LocationListene
                 LogUtil.debug("location===>"+s);
                 instance.publish("dt/V01/Phone/"+s1,0,s.getBytes(StandardCharsets.US_ASCII));
             }
+            publishMsg2ProductMqtt(location);
         }catch (Exception e){
             e.printStackTrace();
         }
@@ -334,6 +355,47 @@ public class BleService extends Service implements MqttCallback, LocationListene
     public class BleServiceBinder extends Binder {
         public BleService getService() {
             return BleService.this;
+        }
+    }
+
+
+    public void publishMsg2ProductMqtt(Location location) {
+        /**
+         * {
+         *  {
+         *      "ctod": ”Greenwich Mean Time”
+         *      "slon":”satellite Longitude in DD (decimal degrees)"
+         *      "slat": “satellite Latitude in DD (decimal degrees)"
+         *      "cudu": "Currently uploaded data users"
+         * }
+         * }
+         */
+        Map<String, String> dtoMap = new HashMap<String, String>();
+        // 设置要显示的格式（这里选择了ISO-8601格式）
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
+        // 设置时区为UTC+0
+        TimeZone timeZone = TimeZone.getTimeZone("UTC+0");
+        sdf.setTimeZone(timeZone);
+        // 进行日期格式化并输出结果
+        String formattedDate = sdf.format(new Date());
+        dtoMap.put("ctod", formattedDate);
+        double slon = 0L;
+        double slat = 0L;
+        if (location != null) {
+            slon = location.getLongitude();
+            slat = location.getLatitude();
+        }
+        dtoMap.put("slon", slon + "");
+        dtoMap.put("slat", slat + "");
+        String userName=(String) SharedPreferencesUtils.getParam(BleService.this, CommonConstant.USER_NAME, "#");
+        dtoMap.put("cudu", userName);
+
+        if (productMqttClientUtil != null) {
+            //Tracer 发布数据的topic 为dt/V01/Phone/账户名(转十六进制)
+            String topic = "dt/V01/Phone/"+ByteUtil.bytes2HexString(userName.getBytes(StandardCharsets.UTF_8));
+            String content = new Gson().toJson(dtoMap);
+            LogUtil.error("publishMsg2ProductMqtt:" + topic + ">" + content);
+            productMqttClientUtil.publish(topic, 0, content.getBytes(StandardCharsets.UTF_8));
         }
     }
 }

@@ -97,7 +97,6 @@ public class MainActivity extends AppCompatActivity {
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void subscriber(EventBusMsg msg) {
-        LogUtil.error(new Gson().toJson(msg));
 
         if (list != null && !list.isEmpty()) {
             for (EventCallBack callBack : list) {
